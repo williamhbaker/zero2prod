@@ -1,5 +1,6 @@
 use std::net::TcpListener;
 
+use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use zero2prod::{
     configuration::get_configuration,
@@ -17,7 +18,7 @@ async fn main() -> std::io::Result<()> {
     let address = format!("localhost:{}", config.application_port);
     let dsn = config.database.dsn();
 
-    let db_pool = PgPool::connect(&dsn)
+    let db_pool = PgPool::connect(&dsn.expose_secret())
         .await
         .expect("Failed to connect to database");
 
