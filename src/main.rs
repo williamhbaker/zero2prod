@@ -15,7 +15,7 @@ async fn main() -> std::io::Result<()> {
 
     let config = get_configuration().expect("Failed to load configuration");
 
-    let address = format!("localhost:{}", config.application_port);
+    let address = format!("{}:{}", config.application.host, config.application.port);
     let dsn = config.database.dsn();
 
     let db_pool = PgPool::connect(&dsn.expose_secret())
