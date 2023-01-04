@@ -68,9 +68,9 @@ async fn subscriptions_returns_400_for_invalid_data() {
         ("name=le%20guin", "missing the email"),
         ("email=ursula_le_guin%40gmail.com", "missing the name"),
         ("", "missing both name and email"),
-        // ("name=some%20name&email=not_an_email", "invalid email"),
+        ("name=some%20name&email=not_an_email", "invalid email"),
         ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
-        // ("name=some%20name&email=", "empty email"),
+        ("name=some%20name&email=", "empty email"),
     ];
 
     let test_app = spawn_app().await;
