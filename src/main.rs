@@ -4,6 +4,7 @@ use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use zero2prod::{
     configuration::get_configuration,
+    email_client::EmailClient,
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };
@@ -22,6 +23,13 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
+    let sender = config.email.sender().expect("Invalid sender email address");
+    let email_client = EmailClient::new(
+        sender,
+        config.email.base_url,
+        config.email.authorization_token,
+    );
+
     let listener = TcpListener::bind(&address)?;
-    run(listener, db_pool)?.await
+    run(listener, db_pool, email_client)?.await
 }

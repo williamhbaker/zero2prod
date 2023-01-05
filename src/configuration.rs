@@ -1,15 +1,31 @@
 use secrecy::{ExposeSecret, Secret};
 
+use crate::domain::SubscriberEmail;
+
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub email: EmailSettings,
 }
 
 #[derive(serde::Deserialize)]
 pub struct ApplicationSettings {
     pub port: u16,
     pub host: String,
+}
+
+#[derive(serde::Deserialize)]
+pub struct EmailSettings {
+    pub sender_email: String,
+    pub base_url: String,
+    pub authorization_token: Secret<String>,
+}
+
+impl EmailSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
 }
 
 #[derive(serde::Deserialize)]

@@ -1,11 +1,13 @@
 use std::net::TcpListener;
 
 use once_cell::sync::Lazy;
-use secrecy::ExposeSecret;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
+    domain::SubscriberEmail,
+    email_client::EmailClient,
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };
@@ -112,7 +114,14 @@ async fn spawn_app() -> TestApp {
 
     let db_pool = configure_db(&configuration.database).await;
 
-    let server = run(listener, db_pool.clone()).expect("Failed to bind address");
+    let sender = SubscriberEmail::parse("test@test.com".to_string()).unwrap();
+    let email_client = EmailClient::new(
+        sender,
+        "base_url".to_string(),
+        Secret::new("token".to_string()),
+    );
+
+    let server = run(listener, db_pool.clone(), email_client).expect("Failed to bind address");
     let _ = tokio::spawn(server);
 
     TestApp { address, db_pool }
