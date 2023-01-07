@@ -24,10 +24,12 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to connect to database");
 
     let sender = config.email.sender().expect("Invalid sender email address");
+    let timeout = config.email.timeout();
     let email_client = EmailClient::new(
         sender,
         config.email.base_url,
         config.email.authorization_token,
+        timeout,
     );
 
     let listener = TcpListener::bind(&address)?;

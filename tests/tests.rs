@@ -119,6 +119,7 @@ async fn spawn_app() -> TestApp {
         sender,
         "base_url".to_string(),
         Secret::new("token".to_string()),
+        std::time::Duration::from_millis(10),
     );
 
     let server = run(listener, db_pool.clone(), email_client).expect("Failed to bind address");

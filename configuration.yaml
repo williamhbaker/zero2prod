@@ -11,3 +11,4 @@ email:
   sender_email: "hello@asdf.com"
   base_url: "localhost"
   authorization_token: "secret"
+  timeout_milliseconds: 10000
