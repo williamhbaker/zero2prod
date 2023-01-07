@@ -52,6 +52,7 @@ impl EmailClient {
 }
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "PascalCase")]
 struct SendEmailRequest {
     from: String,
     to: String,
@@ -70,17 +71,41 @@ mod tests {
         Fake, Faker,
     };
     use secrecy::Secret;
-    use wiremock::{matchers::any, Mock, MockServer, ResponseTemplate};
+    use wiremock::{
+        matchers::{header, header_exists, method, path},
+        Mock, MockServer, Request, ResponseTemplate,
+    };
 
     use crate::{domain::SubscriberEmail, email_client::EmailClient};
 
     #[tokio::test]
-    async fn send_email_sends_email() {
+    async fn send_email_sends_expected_request() {
         let server = MockServer::start().await;
         let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let email_client = EmailClient::new(sender, server.uri(), Secret::new(Faker.fake()));
 
-        Mock::given(any())
+        struct SendEmailBodyMatcher;
+
+        impl wiremock::Match for SendEmailBodyMatcher {
+            fn matches(&self, request: &Request) -> bool {
+                match request.body_json::<serde_json::Value>() {
+                    Ok(body) => {
+                        body.get("From").is_some()
+                            && body.get("To").is_some()
+                            && body.get("Subject").is_some()
+                            && body.get("HtmlBody").is_some()
+                            && body.get("TextBody").is_some()
+                    }
+                    Err(_) => false,
+                }
+            }
+        }
+
+        Mock::given(header_exists("Authorization"))
+            .and(header("Content-Type", "application/json"))
+            .and(path("/email"))
+            .and(method("POST"))
+            .and(SendEmailBodyMatcher)
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
             .mount(&server)
