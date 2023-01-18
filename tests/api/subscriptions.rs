@@ -2,22 +2,15 @@ use crate::helpers::spawn_app;
 
 #[tokio::test]
 async fn subscriptions_returns_200_for_valid_data() {
-    let test_app = spawn_app().await;
-    let client = reqwest::Client::new();
+    let app = spawn_app().await;
 
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
-    let res = client
-        .post(format!("http://{}/subscriptions", test_app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
+    let res = app.post_subscriptions(body.to_string()).await;
 
     assert!(res.status().is_success());
 
     let saved = sqlx::query!("SELECT email, name FROM subscriptions")
-        .fetch_one(&test_app.db_pool)
+        .fetch_one(&app.db_pool)
         .await
         .expect("Failed to fetch saved subscription");
 
@@ -36,18 +29,10 @@ async fn subscriptions_returns_400_for_invalid_data() {
         ("name=some%20name&email=", "empty email"),
     ];
 
-    let test_app = spawn_app().await;
-
-    let client = reqwest::Client::new();
+    let app = spawn_app().await;
 
     for (invalid_body, error_message) in test_cases {
-        let res = client
-            .post(format!("http://{}/subscriptions", test_app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_body)
-            .send()
-            .await
-            .expect("Failed to execute request");
+        let res = app.post_subscriptions(invalid_body.to_string()).await;
 
         assert_eq!(
             400,
