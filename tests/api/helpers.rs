@@ -38,6 +38,15 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
+
+    pub async fn get_subscription_confirm(&self, token: &str) -> reqwest::Response {
+        reqwest::Client::new()
+            .get(format!("http://{}/subscriptions/confirm", self.address))
+            .query(&[("token", token)])
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
 }
 
 pub async fn spawn_app() -> TestApp {

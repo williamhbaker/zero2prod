@@ -3,7 +3,7 @@ use std::net::TcpListener;
 use crate::{
     configuration::Settings,
     email_client::EmailClient,
-    routes::{health_check, subscribe},
+    routes::{confirm_subscription, health_check, subscribe},
 };
 use actix_web::{dev::Server, web, App, HttpServer};
 use secrecy::ExposeSecret;
@@ -67,6 +67,10 @@ pub fn run(
             .wrap(TracingLogger::default())
             .route("/health", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
+            .route(
+                "/subscriptions/confirm",
+                web::get().to(confirm_subscription),
+            )
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
     })

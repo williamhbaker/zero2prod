@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
-    email_client::{self, EmailClient},
+    email_client::EmailClient,
 };
 
 #[derive(serde::Deserialize)]
@@ -42,12 +42,13 @@ pub async fn subscribe(
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
 
-    if insert_subscriber(&subscriber, &db_pool).await.is_err() {
-        return HttpResponse::InternalServerError().finish();
-    }
+    let token = match insert_subscriber(&subscriber, &db_pool).await {
+        Ok(t) => t,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
 
     if email_client
-        .send_email(subscriber.email, "subject", "html_body", "text_body")
+        .send_email(subscriber.email, "hello", &token, &token)
         .await
         .is_err()
     {
@@ -64,23 +65,44 @@ pub async fn subscribe(
 pub async fn insert_subscriber(
     subscriber: &NewSubscriber,
     db_pool: &web::Data<PgPool>,
-) -> Result<(), sqlx::Error> {
+) -> Result<String, sqlx::Error> {
+    let mut txn = db_pool.begin().await?;
+
+    let subscriber_id = Uuid::new_v4();
+    let confirmation_token = format!("{}", Uuid::new_v4());
+
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at, status)
-        VALUES($1, $2, $3, $4, 'confirmed')
+        VALUES($1, $2, $3, $4, 'pending_confirmation')
         "#,
-        Uuid::new_v4(),
+        subscriber_id,
         subscriber.email.as_ref(),
         subscriber.name.as_ref(),
         Utc::now(),
     )
-    .execute(db_pool.get_ref())
+    .execute(&mut txn)
     .await
     .map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
         e
     })?;
 
-    Ok(())
+    sqlx::query!(
+        r#"
+        INSERT INTO subscription_tokens (subscription_token, subscriber_id)
+        VALUES($1, $2)
+        "#,
+        confirmation_token,
+        subscriber_id,
+    )
+    .execute(&mut txn)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+
+    txn.commit().await?;
+    Ok(confirmation_token)
 }
