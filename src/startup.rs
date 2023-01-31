@@ -16,12 +16,12 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(config: Settings) -> Result<Self, std::io::Error> {
+    pub async fn build(config: Settings) -> anyhow::Result<Self> {
         let address = format!("{}:{}", config.application.host, config.application.port);
 
         let db_pool = get_connection_pool(&config).await;
 
-        let sender = config.email.sender().expect("Invalid sender email address");
+        let sender = config.email.sender()?;
         let timeout = config.email.timeout();
         let email_client = EmailClient::new(
             sender,
@@ -31,7 +31,7 @@ impl Application {
         );
 
         let listener = TcpListener::bind(&address)?;
-        let port = listener.local_addr().unwrap().port();
+        let port = listener.local_addr()?.port();
         let server = run(listener, db_pool, email_client)?;
 
         Ok(Self { port, server })

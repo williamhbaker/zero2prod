@@ -1,21 +1,28 @@
 use unicode_segmentation::UnicodeSegmentation;
 
+#[derive(thiserror::Error, Debug)]
+pub enum NameError {
+    #[error("name must not be empty")]
+    EmptyOrWhitespace,
+    #[error("name must be less than 256 characters, was {} characters", .0.len())]
+    TooLong(String),
+    #[error("name {0} contains forbidden characters")]
+    ForbiddenCharacters(String),
+}
+
 #[derive(Debug)]
 pub struct SubscriberName(String);
 
 impl SubscriberName {
-    pub fn parse(s: String) -> Result<Self, String> {
-        // Can't be  blank
-        let is_empty_or_whitespace = s.trim().is_empty();
-
-        // Can't be more than 256 characters long
-        let is_too_long = s.graphemes(true).count() > 256;
-
+    pub fn parse(s: String) -> Result<Self, NameError> {
         let forbidden_characters = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
-        let contains_forbidden_characters = s.chars().any(|c| forbidden_characters.contains(&c));
 
-        if is_empty_or_whitespace || is_too_long || contains_forbidden_characters {
-            Err(format!("subscriber name {} is in valid", s))
+        if s.graphemes(true).count() > 256 {
+            Err(NameError::TooLong(s))
+        } else if s.trim().is_empty() {
+            Err(NameError::EmptyOrWhitespace)
+        } else if s.chars().any(|c| forbidden_characters.contains(&c)) {
+            Err(NameError::ForbiddenCharacters(s))
         } else {
             Ok(Self(s))
         }

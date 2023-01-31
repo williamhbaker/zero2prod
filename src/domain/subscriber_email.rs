@@ -1,14 +1,20 @@
 use validator::validate_email;
 
+#[derive(thiserror::Error, Debug)]
+pub enum EmailError {
+    #[error("invalid email {0}")]
+    InvalidEmail(String),
+}
+
 #[derive(Debug)]
 pub struct SubscriberEmail(String);
 
 impl SubscriberEmail {
-    pub fn parse(s: String) -> Result<Self, String> {
+    pub fn parse(s: String) -> Result<Self, EmailError> {
         if validate_email(&s) {
             Ok(Self(s))
         } else {
-            Err(format!("invalid email {}", s))
+            Err(EmailError::InvalidEmail(s))
         }
     }
 }

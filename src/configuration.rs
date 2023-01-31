@@ -24,8 +24,8 @@ pub struct EmailSettings {
 }
 
 impl EmailSettings {
-    pub fn sender(&self) -> Result<SubscriberEmail, String> {
-        SubscriberEmail::parse(self.sender_email.clone())
+    pub fn sender(&self) -> anyhow::Result<SubscriberEmail> {
+        Ok(SubscriberEmail::parse(self.sender_email.clone())?)
     }
 
     pub fn timeout(&self) -> std::time::Duration {
